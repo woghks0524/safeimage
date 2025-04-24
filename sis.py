@@ -13,7 +13,6 @@ from streamlit_autorefresh import st_autorefresh
 st.set_page_config(page_title="학생용 그림 생성", layout="wide")
 
 st.caption("웹 어플리케이션 문의사항은 정재환(서울창일초), woghks0524jjh@gmail.com, 010-3393-0283으로 연락주세요.")
-
 st.title("🎨 생성형AI 그림 그리기")
 
 api_keys = st.secrets["api"]["keys"]
@@ -48,7 +47,6 @@ def get_sheet():
     return gc.open(st.secrets["google"]["safe_image"]).sheet1
 
 sheet = get_sheet()
-data = sheet.get_all_records()
 
 # ────────────────
 # 사이드바 사용자 정보
@@ -70,7 +68,7 @@ with st.container(height=500, border=True):
         if role == "user":
             st.chat_message("user").write(msg)
         elif role == "assistant":
-            if msg.startswith("http"):
+            if isinstance(msg, str) and msg.startswith("http"):
                 st.chat_message("assistant").image(msg, use_container_width=True)
             else:
                 st.chat_message("assistant").write(msg)
@@ -93,7 +91,7 @@ if user_input and code and student_name:
         "prompt": user_input
     }
 
-    # 누적된 대화 기반 GPT-4o 프롬프트 생성
+    # GPT 프롬프트 생성
     full_context = "\n".join([f"- {p}" for p in st.session_state["prompt_history"]])
     gpt_prompt = f"""
 너는 세계 최고 수준의 이미지 생성 프롬프트 전문가야.
@@ -115,11 +113,7 @@ if user_input and code and student_name:
 "A flat 2D illustration of..."
 """
 
-
-
-    
     try:
-        # GPT-4o로 프롬프트 생성 (조용히)
         gpt_response = client.chat.completions.create(
             model="gpt-4o",
             messages=[
@@ -129,7 +123,6 @@ if user_input and code and student_name:
         )
         dalle_prompt = gpt_response.choices[0].message.content.strip()
 
-        # DALL·E 3로 이미지 생성
         response = client.images.generate(
             model="dall-e-3",
             prompt=dalle_prompt,
@@ -139,8 +132,7 @@ if user_input and code and student_name:
         )
         image_url = response.data[0].url
 
-        # 시트 저장 (화면에는 아직 안 보임)
-        # 시트 저장 (GPT 프롬프트 포함)
+        # 시트에 저장
         sheet.append_row([code, student_name, user_input, dalle_prompt, image_url, "FALSE", now])
         st.info("⏳ 선생님이 그림을 확인 중이에요.")
     except Exception as e:
@@ -148,14 +140,18 @@ if user_input and code and student_name:
         st.error(f"❌ 오류 발생: {e}")
 
 # ────────────────
-# 승인 여부 확인
+# 승인 여부 확인 (🔁 매번 최신 시트로 다시 조회)
 # ────────────────
 if st.session_state["status"] == "waiting":
+    data = sheet.get_all_records()  # ✅ 최신 시트 내용 불러오기
+    latest = st.session_state["latest_info"]
+    
     for row in reversed(data):
-        if (row["코드"] == st.session_state["latest_info"].get("code") and
-            row["이름"] == st.session_state["latest_info"].get("student_name") and
-            row["그림 설명"] == st.session_state["latest_info"].get("prompt")):
-
+        if (
+            row["코드"] == latest.get("code") and
+            row["이름"] == latest.get("student_name") and
+            row["그림 설명"] == latest.get("prompt")
+        ):
             if row["승인여부"].upper() == "TRUE":
                 st.session_state["conversation"].append(("assistant", row["이미지 링크"]))
                 st.session_state["status"] = "idle"
