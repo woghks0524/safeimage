@@ -72,42 +72,32 @@ if code_input:
                             st.rerun()
 
                         if st.button("🔁 재생성", key=f"regen_{row_index}"):
-                            thread = client.beta.threads.create()
-                            prompt = f"""학생이 다음과 같이 그림을 요청했어요:
-\"{row['그림 설명']}\" 
-초등학생 정서에 맞게 다시 부드럽고 귀엽게 재구성해서 그림을 그려주세요."""
+                            try:
+                                # 재생성용 프롬프트 구성
+                                base_prompt = (
+                                    "A flat 2D illustration of the following scene, suitable for elementary school students. "
+                                    "Avoid any surreal or scary imagery. Use a soft, friendly, and simple style with pastel colors.\n\n"
+                                    f"{row['그림 설명']}"
+                                )
 
-                            client.beta.threads.messages.create(
-                                thread_id=thread.id,
-                                role="user",
-                                content=prompt
-                            )
+                                # DALL·E 3 호출
+                                dalle_response = client.images.generate(
+                                    model="dall-e-3",
+                                    prompt=base_prompt,
+                                    size="1024x1024",
+                                    quality="hd",
+                                    n=1
+                                )
 
-                            run = client.beta.threads.runs.create(
-                                thread_id=thread.id,
-                                assistant_id=assistant_id
-                            )
+                                new_image_url = dalle_response.data[0].url
 
-                            while True:
-                                result = client.beta.threads.runs.retrieve(
-                                    thread_id=thread.id,
-                                    run_id=run.id)
-                                if result.status == "completed":
-                                    break
-                                time.sleep(1)
-
-                            msg_list = client.beta.threads.messages.list(thread_id=thread.id).data[0].content
-                            new_image_url = ""
-                            for msg in msg_list:
-                                if msg.type == "image_file":
-                                    new_image_url = msg.image_file.url.get("file")
-
-                            if new_image_url:
+                                # 시트 업데이트
                                 sheet.update_cell(row_index, col_그림, new_image_url)
                                 sheet.update_cell(row_index, col_승인, "FALSE")
                                 st.success("✅ 새 그림으로 업데이트 완료")
                                 st.rerun()
-                            else:
-                                st.warning("❌ 이미지 생성에 실패했습니다. 다시 시도해주세요.")
+
+                            except Exception as e:
+                                st.warning(f"❌ 이미지 생성 중 오류 발생: {e}")
 else:
     st.info("왼쪽 사이드바에서 코드를 입력하세요.")
