@@ -63,8 +63,8 @@ if code_input:
                         st.image(row["이미지 링크"], use_column_width=True)
 
                         row_index = data.index(row) + 2
-                        col_그림 = 4
-                        col_승인 = 5
+                        col_그림 = 5
+                        col_승인 = 6
 
                         if st.button("✅ 승인", key=f"approve_{row_index}"):
                             sheet.update_cell(row_index, col_승인, "TRUE")
