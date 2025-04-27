@@ -69,7 +69,7 @@ with st.container(height=500, border=True):
             st.chat_message("user").write(msg)
         elif role == "assistant":
             if isinstance(msg, str) and msg.startswith("http"):
-                st.chat_message("assistant").image(msg, use_container_width=True)
+                st.chat_message("assistant").image(msg)
             else:
                 st.chat_message("assistant").write(msg)
 
