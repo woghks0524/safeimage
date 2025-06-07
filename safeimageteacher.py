@@ -91,7 +91,7 @@ if code_input:
                     with st.container(border=True):
                         st.markdown(f"#### 🙋 {row['이름']}")
                         st.markdown(f"**🎨 요청 설명:** {row['그림 설명']}")
-                        st.image(row["이미지 링크"], use_container_width=True)
+                        st.image(row["이미지 링크"], use_column_width=True)
 
                         row_index = data.index(row) + 2  # Google Sheets는 1-indexed
                         col_그림 = 5
