@@ -6,3 +6,4 @@ oauth2client
 streamlit-autorefresh
 google-api-python-client==2.126.0
 requests==2.31.0
+firebase-admin
